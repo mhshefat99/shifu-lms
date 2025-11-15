@@ -1,6 +1,6 @@
 import { GalleryVerticalEnd } from "lucide-react";
 import { toast } from "sonner";
-import { SignupForm } from "@/components/signup-form";
+import { SignUpForm } from "@/components/signup-form";
 import { authClient } from "@/lib/auth-client";
 
 export default function SignupPage() {
@@ -27,7 +27,7 @@ export default function SignupPage() {
           </div>
           <p>SHIFU LMS</p>
         </a>
-        <SignupForm />
+        <SignUpForm />
       </div>
     </div>
   );

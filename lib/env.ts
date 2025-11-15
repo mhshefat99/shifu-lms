@@ -8,6 +8,7 @@ export const env = createEnv({
     BETTER_AUTH_URL: z.string().url(),
     GITHUB_CLIENT_ID: z.string().min(1),
     GITHUB_CLIENT_SECRET: z.string().min(1),
+    RESEND_API_KEY: z.string().min(1),
   },
 
   /**
@@ -17,7 +18,7 @@ export const env = createEnv({
   clientPrefix: "PUBLIC_",
 
   client: {
-    PUBLIC_CLERK_PUBLISHABLE_KEY: z.string().min(1),
+    // PUBLIC_CLERK_PUBLISHABLE_KEY: z.string().min(1),
   },
 
   /**

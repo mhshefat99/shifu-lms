@@ -4,6 +4,12 @@ import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import { useForm, Controller } from "react-hook-form";
+import { useTransition } from "react";
+import { Input } from "@/components/ui/input";
+import { GithubIcon, Loader2 } from "lucide-react";
+import { authClient } from "@/lib/auth-client";
+import { toast } from "sonner";
+import { useRouter } from "next/navigation";
 import { zodResolver } from "@hookform/resolvers/zod";
 import {
   Card,
@@ -19,15 +25,18 @@ import {
   FieldLabel,
   FieldError,
 } from "@/components/ui/field";
-import { Input } from "@/components/ui/input";
-import { GithubIcon } from "lucide-react";
+import { SignUpType, signUpSchema } from "@/schemas/signUpSchema";
 
-export function SignupForm({
+export function SignUpForm({
   className,
   ...props
 }: React.ComponentProps<"div">) {
+  const [isSocialPending, startSocialTransition] = useTransition();
+  const [isEmailPending, startEmailTransition] = useTransition();
+  const isSigningUp = isSocialPending || isEmailPending;
+  const router = useRouter();
   const form = useForm({
-    // resolver: zodResolver(""),
+    resolver: zodResolver(signUpSchema),
     defaultValues: {
       name: "",
       email: "",
@@ -35,6 +44,43 @@ export function SignupForm({
       confirmPassword: "",
     },
   });
+
+  const handleSignUp = async ({ name, email, password }: SignUpType) => {
+    startEmailTransition(async () => {
+      await authClient.signUp.email({
+        name,
+        email,
+        password,
+        callbackURL: "/email-verified",
+        fetchOptions: {
+          onSuccess: () => {
+            toast.success("Sign up successful");
+            router.push("/verify-email");
+          },
+          onError: (err) => {
+            toast.error(err.error.message);
+          },
+        },
+      });
+    });
+  };
+
+  const signInWithGitHub = async () => {
+    startSocialTransition(async () => {
+      await authClient.signIn.social({
+        provider: "github",
+        callbackURL: "/",
+        fetchOptions: {
+          onSuccess: () => {
+            toast.success("Signed in with GitHub successfully...");
+          },
+          onError: (err) => {
+            toast.error(err.error.message);
+          },
+        },
+      });
+    });
+  };
   return (
     <div className={cn("flex flex-col gap-6", className)} {...props}>
       <Card>
@@ -45,14 +91,27 @@ export function SignupForm({
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <Button className="w-full" variant="outline">
-            <GithubIcon className="size-4" />
-            Sign in with GitHub
+          <Button
+            className="w-full"
+            variant="outline"
+            onClick={signInWithGitHub}
+          >
+            {isSocialPending ? (
+              <>
+                <Loader2 className="size-4 animate-spin" />
+                <span>Signing in...</span>
+              </>
+            ) : (
+              <>
+                <GithubIcon className="size-4" />
+                <span>Sign in with GitHub</span>
+              </>
+            )}
           </Button>
           <div className="relative text-center text-sm after:absolute after:inset-0 after:top-1/2 after:z-0 after:flex after:items-center after:border-t after:border-border my-4">
             <span>Or continue with</span>
           </div>
-          <form>
+          <form onSubmit={form.handleSubmit(handleSignUp)}>
             <FieldGroup>
               <Controller
                 name="name"
@@ -64,7 +123,6 @@ export function SignupForm({
                       {...field}
                       aria-invalid={fieldState.invalid}
                       type="text"
-                      required
                     />
                     {fieldState.invalid && (
                       <FieldError errors={[fieldState.error]} />
@@ -83,7 +141,6 @@ export function SignupForm({
                       aria-invalid={fieldState.invalid}
                       type="text"
                       placeholder="example@gmail.com"
-                      required
                     />
                     {fieldState.invalid && (
                       <FieldError errors={[fieldState.error]} />
@@ -102,7 +159,6 @@ export function SignupForm({
                         {...field}
                         aria-invalid={fieldState.invalid}
                         type="password"
-                        required
                       />
                       {fieldState.invalid && (
                         <FieldError errors={[fieldState.error]} />
@@ -122,7 +178,6 @@ export function SignupForm({
                         {...field}
                         aria-invalid={fieldState.invalid}
                         type="password"
-                        required
                       />
                       {fieldState.invalid && (
                         <FieldError errors={[fieldState.error]} />
@@ -134,10 +189,12 @@ export function SignupForm({
               {/* Show errors for password and confirm password here */}
               <div></div>
               <Field>
-                <Button type="submit">Create Account</Button>
+                <Button type="submit" disabled={isSigningUp}>
+                  Create Account
+                </Button>
                 <FieldDescription className="text-center">
                   Already have an account?{" "}
-                  <Link href="/login">
+                  <Link href="/sign-in">
                     <span className="font-semibold">Login</span>
                   </Link>
                 </FieldDescription>
